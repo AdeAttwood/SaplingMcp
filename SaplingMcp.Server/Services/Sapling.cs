@@ -42,22 +42,21 @@ public class Sapling
     _repoDir = Directory.GetCurrentDirectory();
   }
 
-  public string RepositoryId()
-  {
-    var result = this.RunCommand($"config bookstack.repository").Trim();
-    return result;
-  }
-
   public IList<Commit> Stack() => this.Commits("bottom::top");
 
   public IList<Commit> Public() => this.Commits("public()");
 
   public IList<Commit> Commits(string rev)
   {
-    // TODO: Sort out the ref so we con't do shell injection
-    var command = "log -r " + rev + " -T\"{dict(node, author, desc, file_adds, file_dels, file_mods, phase)|json}\\n\"";
+    var arguments = new List<string>
+    {
+      "log",
+      "-r",
+      rev,
+      "-T{dict(node, author, desc, file_adds, file_dels, file_mods, phase)|json}\\n"
+    };
 
-    var output = this.RunCommand(command);
+    var output = this.RunCommand(arguments);
 
     var commits = output
         .Split('\n')
@@ -72,24 +71,28 @@ public class Sapling
     return commits;
   }
 
-  private string RunCommand(string command)
+  private string RunCommand(IList<string> arguments)
   {
     var process = new Process();
-
-    Console.Error.WriteLine($"Command: {command}");
 
     process.StartInfo.UseShellExecute = false;
     process.StartInfo.RedirectStandardOutput = true;
     process.StartInfo.RedirectStandardError = true;
     process.StartInfo.FileName = "sl";
-    process.StartInfo.Arguments = command;
     process.StartInfo.WorkingDirectory = _repoDir;
+    
+    // Use ProcessStartInfo.ArgumentList instead of Arguments to avoid shell injection
+    foreach (var arg in arguments)
+    {
+      process.StartInfo.ArgumentList.Add(arg);
+    }
+
+    Console.Error.WriteLine($"Command: sl {string.Join(" ", arguments)}");
 
     process.Start();
 
     string output = process.StandardOutput.ReadToEnd();
     string error = process.StandardError.ReadToEnd();
-
 
     process.WaitForExit();
 
