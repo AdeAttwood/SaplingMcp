@@ -39,4 +39,24 @@ public class SaplingTools
     {
         return _sapling.Public().ToList();
     }
+
+    [McpServerTool, Description("Creates a new commit with the specified message and files")]
+    public Commit CreateCommit(
+        [Description("The commit message to use")] string message,
+        [Description("List of files to include in the commit")] List<string> files)
+    {
+        try
+        {
+            var commit = _sapling.CreateCommit(message, files);
+            if (commit == null)
+            {
+                throw new InvalidOperationException("Failed to create commit. Please check your repository state.");
+            }
+            return commit;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error creating commit: {ex.Message}");
+        }
+    }
 }

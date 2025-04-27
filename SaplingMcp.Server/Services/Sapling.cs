@@ -122,6 +122,37 @@ public class Sapling
     }
 
     /// <summary>
+    /// Creates a new commit with the specified message and files.
+    /// </summary>
+    /// <param name="message">The commit message.</param>
+    /// <param name="files">The list of files to include in the commit.</param>
+    /// <returns>The newly created commit, or null if no files were specified.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no files are specified for the commit.</exception>
+    public Commit? CreateCommit(string message, IList<string> files)
+    {
+        if (files.Count == 0)
+        {
+            throw new InvalidOperationException("No files specified for commit. Please specify at least one file to commit.");
+        }
+
+        // Create the commit with the specified files
+        var commitArguments = new List<string> { "commit", "-m", message };
+
+        // Add each file with the -I flag
+        foreach (var file in files)
+        {
+            commitArguments.Add("-I");
+            commitArguments.Add(file);
+        }
+
+        RunCommand(commitArguments);
+
+        // Get the newly created commit
+        var newCommits = Commits(".");
+        return newCommits.FirstOrDefault();
+    }
+
+    /// <summary>
     /// Runs a Sapling command with the specified arguments.
     /// </summary>
     /// <param name="arguments">The command arguments to pass to Sapling.</param>
