@@ -11,7 +11,7 @@
 - To find out what all the statuses mean you can run `sl help status`
 - The status should NOT be a char but a name so the llm can infer from it
 
-## Add a way to list pull requests from github
+## ✅ Add a way to list pull requests from github
 
 I think this will need to be a separate tool file.
 
