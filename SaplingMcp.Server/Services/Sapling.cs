@@ -1,54 +1,55 @@
 using System.Diagnostics;
 using System.Text.Json;
+
 using Microsoft.Extensions.Logging;
 
 namespace SaplingMcp.Server.Services;
 
 public class Commit
 {
-  [System.Text.Json.Serialization.JsonPropertyName("node")]
-  public required string Node { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("node")]
+    public required string Node { get; set; }
 
-  [System.Text.Json.Serialization.JsonPropertyName("desc")]
-  public required string Description { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("desc")]
+    public required string Description { get; set; }
 
-  [System.Text.Json.Serialization.JsonPropertyName("author")]
-  public required string Author { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("author")]
+    public required string Author { get; set; }
 
-  [System.Text.Json.Serialization.JsonPropertyName("file_adds")]
-  public required List<string> FilesAdded { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("file_adds")]
+    public required List<string> FilesAdded { get; set; }
 
-  [System.Text.Json.Serialization.JsonPropertyName("file_dels")]
-  public required List<string> FilesRemoved { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("file_dels")]
+    public required List<string> FilesRemoved { get; set; }
 
-  [System.Text.Json.Serialization.JsonPropertyName("file_mods")]
-  public required List<string> FilesModified { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("file_mods")]
+    public required List<string> FilesModified { get; set; }
 
-  [System.Text.Json.Serialization.JsonPropertyName("phase")]
-  public required string Phase  { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("phase")]
+    public required string Phase { get; set; }
 }
 
 public class Sapling
 {
-  private readonly string _repoDir;
+    private readonly string _repoDir;
 
-  public Sapling(string repoDir)
-  {
-    _repoDir = repoDir;
-  }
+    public Sapling(string repoDir)
+    {
+        _repoDir = repoDir;
+    }
 
-  public Sapling(ILogger<Sapling> logger)
-  {
-    _repoDir = Directory.GetCurrentDirectory();
-  }
+    public Sapling(ILogger<Sapling> logger)
+    {
+        _repoDir = Directory.GetCurrentDirectory();
+    }
 
-  public IList<Commit> Stack() => this.Commits("bottom::top");
+    public IList<Commit> Stack() => this.Commits("bottom::top");
 
-  public IList<Commit> Public() => this.Commits("public()");
+    public IList<Commit> Public() => this.Commits("public()");
 
-  public IList<Commit> Commits(string rev)
-  {
-    var arguments = new List<string>
+    public IList<Commit> Commits(string rev)
+    {
+        var arguments = new List<string>
     {
       "log",
       "-r",
@@ -56,49 +57,49 @@ public class Sapling
       "-T{dict(node, author, desc, file_adds, file_dels, file_mods, phase)|json}\\n"
     };
 
-    var output = this.RunCommand(arguments);
+        var output = this.RunCommand(arguments);
 
-    var commits = output
-        .Split('\n')
-        .Where(reference => !string.IsNullOrWhiteSpace(reference))
-        .Select(reference =>
-        {
-          return JsonSerializer.Deserialize<Commit>(reference)
-              ?? throw new InvalidOperationException($"Failed to deserialize commit: {reference}");
-        })
-        .ToList();
+        var commits = output
+            .Split('\n')
+            .Where(reference => !string.IsNullOrWhiteSpace(reference))
+            .Select(reference =>
+            {
+                return JsonSerializer.Deserialize<Commit>(reference)
+                ?? throw new InvalidOperationException($"Failed to deserialize commit: {reference}");
+            })
+            .ToList();
 
-    return commits;
-  }
-
-  private string RunCommand(IList<string> arguments)
-  {
-    var process = new Process();
-
-    process.StartInfo.UseShellExecute = false;
-    process.StartInfo.RedirectStandardOutput = true;
-    process.StartInfo.RedirectStandardError = true;
-    process.StartInfo.FileName = "sl";
-    process.StartInfo.WorkingDirectory = _repoDir;
-    
-    // Use ProcessStartInfo.ArgumentList instead of Arguments to avoid shell injection
-    foreach (var arg in arguments)
-    {
-      process.StartInfo.ArgumentList.Add(arg);
+        return commits;
     }
 
-    Console.Error.WriteLine($"Command: sl {string.Join(" ", arguments)}");
+    private string RunCommand(IList<string> arguments)
+    {
+        var process = new Process();
 
-    process.Start();
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.FileName = "sl";
+        process.StartInfo.WorkingDirectory = _repoDir;
 
-    string output = process.StandardOutput.ReadToEnd();
-    string error = process.StandardError.ReadToEnd();
+        // Use ProcessStartInfo.ArgumentList instead of Arguments to avoid shell injection
+        foreach (var arg in arguments)
+        {
+            process.StartInfo.ArgumentList.Add(arg);
+        }
 
-    process.WaitForExit();
+        Console.Error.WriteLine($"Command: sl {string.Join(" ", arguments)}");
 
-    Console.Error.WriteLine($"The out is {output}");
-    Console.Error.WriteLine($"The err is {error}");
+        process.Start();
 
-    return output;
-  }
+        string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
+
+        process.WaitForExit();
+
+        Console.Error.WriteLine($"The out is {output}");
+        Console.Error.WriteLine($"The err is {error}");
+
+        return output;
+    }
 }
