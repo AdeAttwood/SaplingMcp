@@ -7,6 +7,50 @@ using Microsoft.Extensions.Logging;
 namespace SaplingMcp.Server.Services;
 
 /// <summary>
+/// Represents a file status in the Sapling version control system.
+/// </summary>
+public class FileStatus
+{
+    /// <summary>
+    /// Gets or sets the path of the file.
+    /// </summary>
+    [JsonPropertyName("path")]
+    public required string Path { get; set; }
+
+    /// <summary>
+    /// Gets or sets the status code of the file.
+    /// </summary>
+    [JsonPropertyName("status")]
+    public required string StatusCode { get; set; }
+
+    /// <summary>
+    /// Gets the human-readable status name based on the status code.
+    /// </summary>
+    [JsonIgnore]
+    public string StatusName => GetStatusName(StatusCode);
+
+    /// <summary>
+    /// Converts a status code to a human-readable status name.
+    /// </summary>
+    /// <param name="code">The status code to convert.</param>
+    /// <returns>A human-readable status name.</returns>
+    private static string GetStatusName(string code)
+    {
+        return code switch
+        {
+            "M" => "Modified",
+            "A" => "Added",
+            "R" => "Removed",
+            "C" => "Clean",
+            "!" => "Missing",
+            "?" => "Untracked",
+            "I" => "Ignored",
+            _ => "Unknown"
+        };
+    }
+}
+
+/// <summary>
 /// Represents a commit in the Sapling version control system.
 /// </summary>
 public class Commit
@@ -152,6 +196,58 @@ public class Sapling
         return newCommits.FirstOrDefault();
     }
 
+    /// <summary>
+    /// Amends the current commit with the specified files and optionally updates the commit message.
+    /// </summary>
+    /// <param name="files">The list of files to include in the amendment.</param>
+    /// <param name="message">The new commit message. If null or empty, the existing message is kept.</param>
+    /// <returns>The amended commit, or null if no files were specified.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no files are specified for the amendment.</exception>
+    public Commit? AmendCommit(IList<string> files, string? message = null)
+    {
+        if (files.Count == 0)
+        {
+            throw new InvalidOperationException("No files specified for amendment. Please specify at least one file to amend.");
+        }
+
+        // Create the amend command with the specified files
+        var amendArguments = new List<string> { "amend" };
+
+        // Add message if provided
+        if (!string.IsNullOrEmpty(message))
+        {
+            amendArguments.Add("-m");
+            amendArguments.Add(message);
+        }
+
+        // Add each file with the -I flag
+        foreach (var file in files)
+        {
+            amendArguments.Add("-I");
+            amendArguments.Add(file);
+        }
+
+        RunCommand(amendArguments);
+
+        // Get the amended commit
+        var amendedCommits = Commits(".");
+        return amendedCommits.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Gets the status of files in the working directory.
+    /// </summary>
+    /// <returns>A list of file statuses.</returns>
+    public IList<FileStatus> GetStatus()
+    {
+        var arguments = new List<string> { "status", "-Tjson" };
+        var output = RunCommand(arguments);
+
+        var statuses = JsonSerializer.Deserialize<List<FileStatus>>(output)
+            ?? throw new InvalidOperationException("Failed to deserialize file statuses");
+
+        return statuses;
+    }
     /// <summary>
     /// Runs a Sapling command with the specified arguments.
     /// </summary>

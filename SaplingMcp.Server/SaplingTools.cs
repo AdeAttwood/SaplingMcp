@@ -59,4 +59,37 @@ public class SaplingTools
             throw new InvalidOperationException($"Error creating commit: {ex.Message}");
         }
     }
+
+    [McpServerTool, Description("Amends the current commit with the specified files and optionally updates the commit message")]
+    public Commit AmendCommit(
+        [Description("List of files to include in the amendment")] List<string> files,
+        [Description("The new commit message (optional). If not provided, the existing message is kept")] string? message = null)
+    {
+        try
+        {
+            var commit = _sapling.AmendCommit(files, message);
+            if (commit == null)
+            {
+                throw new InvalidOperationException("Failed to amend commit. Please check your repository state.");
+            }
+            return commit;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error amending commit: {ex.Message}");
+        }
+    }
+
+    [McpServerTool, Description("Gets the status of files in the working directory")]
+    public List<FileStatus> GetStatus()
+    {
+        try
+        {
+            return _sapling.GetStatus().ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error getting status: {ex.Message}");
+        }
+    }
 }
