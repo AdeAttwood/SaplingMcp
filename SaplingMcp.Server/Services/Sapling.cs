@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Microsoft.Extensions.Logging;
 
@@ -7,25 +8,25 @@ namespace SaplingMcp.Server.Services;
 
 public class Commit
 {
-    [System.Text.Json.Serialization.JsonPropertyName("node")]
+    [JsonPropertyName("node")]
     public required string Node { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("desc")]
+    [JsonPropertyName("desc")]
     public required string Description { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("author")]
+    [JsonPropertyName("author")]
     public required string Author { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("file_adds")]
+    [JsonPropertyName("file_adds")]
     public required List<string> FilesAdded { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("file_dels")]
+    [JsonPropertyName("file_dels")]
     public required List<string> FilesRemoved { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("file_mods")]
+    [JsonPropertyName("file_mods")]
     public required List<string> FilesModified { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("phase")]
+    [JsonPropertyName("phase")]
     public required string Phase { get; set; }
 }
 
