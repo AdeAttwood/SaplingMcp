@@ -198,7 +198,7 @@ public class Sapling
         }
 
         // Create the commit with the specified files
-        var commitArguments = new List<string> { "commit", "-m", message };
+        var commitArguments = new List<string> { "commit", "-Am", message };
 
         // Add each file with the -I flag
         foreach (var file in files)
@@ -229,7 +229,7 @@ public class Sapling
         }
 
         // Create the amend command with the specified files
-        var amendArguments = new List<string> { "amend" };
+        var amendArguments = new List<string> { "amend", "-A" };
 
         // Add message if provided
         if (!string.IsNullOrEmpty(message))
