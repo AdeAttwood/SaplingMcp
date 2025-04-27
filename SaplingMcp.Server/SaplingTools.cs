@@ -29,9 +29,9 @@ public class SaplingTools
     }
 
     [McpServerTool, Description("Gets all the commits in the current stack")]
-    public List<Commit> GetCurrentStack(string message = "")
+    public string GetCurrentStack(string message = "")
     {
-        return _sapling.Stack().ToList();
+        return TokenEfficientParser.FormatCommits(_sapling.Stack().ToList());
     }
 
     [McpServerTool, Description("Gets all the public commits")]
@@ -41,7 +41,7 @@ public class SaplingTools
     }
 
     [McpServerTool, Description("Creates a new commit with the specified message and files")]
-    public Commit CreateCommit(
+    public string CreateCommit(
         [Description("The commit message to use")] string message,
         [Description("List of files to include in the commit")] List<string> files)
     {
@@ -52,7 +52,8 @@ public class SaplingTools
             {
                 throw new InvalidOperationException("Failed to create commit. Please check your repository state.");
             }
-            return commit;
+
+            return TokenEfficientParser.FormatCommit(commit);
         }
         catch (Exception ex)
         {
@@ -61,7 +62,7 @@ public class SaplingTools
     }
 
     [McpServerTool, Description("Amends the current commit with the specified files and optionally updates the commit message")]
-    public Commit AmendCommit(
+    public string AmendCommit(
         [Description("List of files to include in the amendment")] List<string> files,
         [Description("The new commit message (optional). If not provided, the existing message is kept")] string? message = null)
     {
@@ -72,7 +73,8 @@ public class SaplingTools
             {
                 throw new InvalidOperationException("Failed to amend commit. Please check your repository state.");
             }
-            return commit;
+
+            return TokenEfficientParser.FormatCommit(commit);
         }
         catch (Exception ex)
         {
@@ -81,7 +83,7 @@ public class SaplingTools
     }
 
     [McpServerTool, Description("Gets the status of files in the working directory")]
-    public List<FileStatus> GetStatus()
+    public List<FileStatus> GetStatus(string message = "")
     {
         try
         {
@@ -90,6 +92,25 @@ public class SaplingTools
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Error getting status: {ex.Message}");
+        }
+    }
+
+    [McpServerTool, Description("Submits the current stack of commits to create or update pull requests")]
+    public string SubmitStack(string message = "")
+    {
+        try
+        {
+            var submittedCommits = _sapling.SubmitStack().ToList();
+            if (submittedCommits.Count == 0)
+            {
+                throw new InvalidOperationException("No commits were submitted. Please check your repository state.");
+            }
+
+            return TokenEfficientParser.FormatCommits(submittedCommits);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error submitting stack: {ex.Message}");
         }
     }
 }

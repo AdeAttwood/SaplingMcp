@@ -198,7 +198,7 @@ public class Sapling
         }
 
         // Create the commit with the specified files
-        var commitArguments = new List<string> { "commit", "-m", message };
+        var commitArguments = new List<string> { "commit", "-Am", message };
 
         // Add each file with the -I flag
         foreach (var file in files)
@@ -229,7 +229,7 @@ public class Sapling
         }
 
         // Create the amend command with the specified files
-        var amendArguments = new List<string> { "amend" };
+        var amendArguments = new List<string> { "amend", "-A" };
 
         // Add message if provided
         if (!string.IsNullOrEmpty(message))
@@ -266,6 +266,29 @@ public class Sapling
 
         return statuses;
     }
+
+    /// <summary>
+    /// Submits the current stack of commits to create or update pull requests.
+    /// </summary>
+    /// <returns>A list of commits in the stack that were submitted.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the submission fails.</exception>
+    public IList<Commit> SubmitStack()
+    {
+        try
+        {
+            // Run the 'sl pr submit' command to submit the current stack
+            var arguments = new List<string> { "pr", "submit" };
+            RunCommand(arguments);
+
+            // Return the updated stack with PR information
+            return Stack();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error submitting stack: {ex.Message}");
+        }
+    }
+
     /// <summary>
     /// Runs a Sapling command with the specified arguments.
     /// </summary>
