@@ -96,6 +96,24 @@ public class Commit
     /// </summary>
     [JsonPropertyName("phase")]
     public required string Phase { get; set; }
+
+    /// <summary>
+    /// Gets or sets the GitHub pull request number associated with this commit.
+    /// </summary>
+    [JsonPropertyName("github_pull_request_number")]
+    public int? GitHubPullRequestNumber { get; set; }
+
+    /// <summary>
+    /// Gets or sets the GitHub repository name associated with this commit.
+    /// </summary>
+    [JsonPropertyName("github_pull_request_repo_name")]
+    public string? GitHubPullRequestRepoName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the GitHub repository owner associated with this commit.
+    /// </summary>
+    [JsonPropertyName("github_pull_request_repo_owner")]
+    public string? GitHubPullRequestRepoOwner { get; set; }
 }
 
 /// <summary>
@@ -147,7 +165,7 @@ public class Sapling
       "log",
       "-r",
       rev,
-      "-T{dict(node, author, desc, file_adds, file_dels, file_mods, phase)|json}\\n"
+      "-T{dict(node, author, desc, file_adds, file_dels, file_mods, phase, github_pull_request_number, github_pull_request_repo_name, github_pull_request_repo_owner)|json}\\n"
     };
 
         var output = this.RunCommand(arguments);
