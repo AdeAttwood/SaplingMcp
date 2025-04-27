@@ -28,6 +28,15 @@
 - Use feature folders for organizing related functionality
 - Keep services stateless when possible
 
+## Pre-Commit Checks
+
+Before committing changes, ensure:
+1. The application builds successfully: `dotnet build`
+2. Code is properly formatted: `dotnet format`
+3. All tests pass: `dotnet test`
+
+This helps maintain code quality and prevents broken builds in the repository.
+
 ## Committing
 
 All commit messages should follow the conventional format for the title, then
