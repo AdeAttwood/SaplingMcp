@@ -17,11 +17,17 @@ builder.Logging.AddConsole(consoleLogOptions =>
 });
 
 builder.Services.AddSingleton<Sapling>();
+builder.Services.AddSingleton<GitHubService>(provider =>
+{
+    // Use the same directory as the Sapling service
+    var repoDir = Directory.GetCurrentDirectory();
+    return new GitHubService(repoDir);
+});
 
 builder.Services
     .AddMcpServer()
     .WithStdioServerTransport()
-    .WithTools<SaplingTools>();
-
+    .WithTools<SaplingTools>()
+    .WithTools<GitHubTools>();
 
 await builder.Build().RunAsync();
