@@ -94,4 +94,23 @@ public class SaplingTools
             throw new InvalidOperationException($"Error getting status: {ex.Message}");
         }
     }
+
+    [McpServerTool, Description("Submits the current stack of commits to create or update pull requests")]
+    public string SubmitStack(string message = "")
+    {
+        try
+        {
+            var submittedCommits = _sapling.SubmitStack().ToList();
+            if (submittedCommits.Count == 0)
+            {
+                throw new InvalidOperationException("No commits were submitted. Please check your repository state.");
+            }
+
+            return TokenEfficientParser.FormatCommits(submittedCommits);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error submitting stack: {ex.Message}");
+        }
+    }
 }
