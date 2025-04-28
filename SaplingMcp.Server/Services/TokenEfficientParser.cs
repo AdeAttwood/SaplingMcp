@@ -186,6 +186,85 @@ public static class TokenEfficientParser
     }
 
     /// <summary>
+    /// Formats a review thread into a token-efficient line-based format.
+    /// </summary>
+    /// <param name="thread">The review thread to format.</param>
+    /// <param name="prNumber">The pull request number.</param>
+    /// <param name="repoPath">The repository path in format owner/repo.</param>
+    /// <returns>A string representation of the thread in a token-efficient format.</returns>
+    public static string FormatReviewThread(ReviewThread thread, int prNumber, string repoPath)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append("pr:").Append(repoPath).Append('#').Append(prNumber);
+        sb.Append(Delimiter);
+
+        sb.Append("resolved:").Append(thread.IsResolved ? "true" : "false");
+        sb.Append(Delimiter);
+
+        sb.Append("comments:").Append(thread.Comments.Nodes.Count);
+        sb.Append(Delimiter);
+
+        // Format the first comment in the thread (usually the most important one)
+        if (thread.Comments.Nodes.Count > 0)
+        {
+            var firstComment = thread.Comments.Nodes[0];
+            sb.Append("author:").Append(firstComment.Author.Login);
+            sb.Append(Delimiter);
+            sb.Append("date:").Append(firstComment.CreatedAt);
+            sb.Append(Delimiter);
+            sb.Append("body:").Append(EscapeValue(firstComment.Body));
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Formats a list of review threads into a token-efficient multi-line format.
+    /// </summary>
+    /// <param name="threads">The list of threads to format.</param>
+    /// <param name="prNumber">The pull request number.</param>
+    /// <param name="repoPath">The repository path in format owner/repo.</param>
+    /// <returns>A string representation of the threads, one per line.</returns>
+    public static string FormatReviewThreads(IEnumerable<ReviewThread> threads, int prNumber, string repoPath)
+    {
+        return string.Join(Environment.NewLine, threads.Select(t => FormatReviewThread(t, prNumber, repoPath)));
+    }
+
+    /// <summary>
+    /// Formats a review comment into a token-efficient line-based format.
+    /// </summary>
+    /// <param name="comment">The review comment to format.</param>
+    /// <returns>A string representation of the comment in a token-efficient format.</returns>
+    public static string FormatReviewComment(PullRequestReviewComment comment)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append("id:").Append(comment.Id);
+        sb.Append(Delimiter);
+
+        sb.Append("author:").Append(comment.Author.Login);
+        sb.Append(Delimiter);
+
+        sb.Append("date:").Append(comment.CreatedAt);
+        sb.Append(Delimiter);
+
+        sb.Append("body:").Append(EscapeValue(comment.Body));
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Formats a list of review comments into a token-efficient multi-line format.
+    /// </summary>
+    /// <param name="comments">The list of comments to format.</param>
+    /// <returns>A string representation of the comments, one per line.</returns>
+    public static string FormatReviewComments(IEnumerable<PullRequestReviewComment> comments)
+    {
+        return string.Join(Environment.NewLine, comments.Select(FormatReviewComment));
+    }
+
+    /// <summary>
     /// Escapes special characters in a value for the token-efficient format.
     /// </summary>
     /// <param name="value">The value to escape.</param>
