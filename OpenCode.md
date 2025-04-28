@@ -80,3 +80,9 @@ correctly.
 - **style**: Changes that do not affect the meaning of the code (white-space, formatting, etc)
 - **test**: Adding missing tests or correcting existing tests
 
+# Source Control / PR workflow
+
+- For this we are using SaplingScm with a stacked pr workflow.
+- Changes in the stack are linked to a GitHub PR
+- The PR may have comments that we need to address
+- The mainline branch is origin/master
