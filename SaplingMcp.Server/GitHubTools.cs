@@ -26,11 +26,11 @@ public class GitHubTools
     /// <summary>
     /// Gets a list of open pull requests for the current repository or a specified repository.
     /// </summary>
-    /// <param name="repo">Optional repository in the format owner/repo. If not provided, uses the current repository.</param>
+    /// <param name="repo">The repository in the format owner/repo.</param>
     /// <returns>A list of open pull requests.</returns>
-    [McpServerTool, Description("Gets a list of open pull requests for the current repository or a specified repository")]
+    [McpServerTool, Description("Gets a list of open pull requests for a specified repository")]
     public List<PullRequest> GetOpenPullRequests(
-        [Description("Optional repository in the format owner/repo. If not provided, uses the current repository")] string? repo = null)
+        [Description("The repository in the format owner/repo")] string repo)
     {
         try
         {
@@ -113,7 +113,7 @@ public class GitHubTools
     [McpServerTool, Description("Gets CI check statuses for a specific pull request")]
     public List<CheckStatus> GetPullRequestChecks(
         [Description("The pull request number")] int prNumber,
-        [Description("Optional repository in the format owner/repo. If not provided, uses the current repository")] string? repo = null)
+        [Description("The repository in the format owner/repo")] string repo)
     {
         try
         {
