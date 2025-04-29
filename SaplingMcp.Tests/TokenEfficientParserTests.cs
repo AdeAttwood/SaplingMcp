@@ -209,6 +209,173 @@ public class TokenEfficientParserTests
     }
 
     [Fact]
+    public void FormatReviewThread_ShouldReturnCorrectFormat()
+    {
+        // Arrange
+        var thread = new ReviewThread
+        {
+            IsResolved = false,
+            Comments = new ReviewThreadComments
+            {
+                Nodes = new List<PullRequestReviewComment>
+                {
+                    new PullRequestReviewComment
+                    {
+                        Author = new Author { Login = "testuser" },
+                        CreatedAt = "2023-10-27T10:00:00Z",
+                        Body = "Initial comment body.",
+                        DiffHunk = "@@ -1 +1 @@\n-old\n+new"
+                    }
+                }
+            }
+        };
+        var prNumber = 123;
+        var repoPath = "testorg/testrepo";
+
+        // Act
+        var result = TokenEfficientParser.FormatReviewThread(thread, prNumber, repoPath);
+
+        // Assert
+        Assert.Equal("pr:testorg/testrepo#123|resolved:false|comments:1|author:testuser|date:2023-10-27T10:00:00Z|body:Initial comment body.|diffHunk:@@ -1 +1 @@\\n-old\\n+new", result);
+    }
+
+    [Fact]
+    public void FormatReviewThreads_ShouldReturnMultilineFormat()
+    {
+        // Arrange
+        var threads = new List<ReviewThread>
+        {
+            new ReviewThread
+            {
+                IsResolved = true,
+                Comments = new ReviewThreadComments
+                {
+                    Nodes = new List<PullRequestReviewComment>
+                    {
+                        new PullRequestReviewComment
+                        {
+                            Author = new Author { Login = "user1" },
+                            CreatedAt = "2023-10-27T10:00:00Z",
+                            Body = "Comment 1.",
+                            DiffHunk = "diff1"
+                        }
+                    }
+                }
+            },
+            new ReviewThread
+            {
+                IsResolved = false,
+                Comments = new ReviewThreadComments
+                {
+                    Nodes = new List<PullRequestReviewComment>
+                    {
+                        new PullRequestReviewComment
+                        {
+                            Author = new Author { Login = "user2" },
+                            CreatedAt = "2023-10-27T11:00:00Z",
+                            Body = "Comment 2.\nNew line.",
+                            DiffHunk = "diff2\\nwith newline"
+                        }
+                    }
+                }
+            }
+        };
+        var prNumber = 456;
+        var repoPath = "anotherorg/anotherrepo";
+
+        // Act
+        var result = TokenEfficientParser.FormatReviewThreads(threads, prNumber, repoPath);
+        var lines = result.Split(Environment.NewLine);
+
+        // Assert
+        Assert.Equal(2, lines.Length);
+        Assert.Equal("pr:anotherorg/anotherrepo#456|resolved:true|comments:1|author:user1|date:2023-10-27T10:00:00Z|body:Comment 1.|diffHunk:diff1", lines[0]);
+        Assert.Equal("pr:anotherorg/anotherrepo#456|resolved:false|comments:1|author:user2|date:2023-10-27T11:00:00Z|body:Comment 2.\\nNew line.|diffHunk:diff2\\\\nwith newline", lines[1]);
+    }
+
+    [Fact]
+    public void FormatReviewComment_ShouldReturnCorrectFormat()
+    {
+        // Arrange
+        var comment = new PullRequestReviewComment
+        {
+            Id = "comment789",
+            Author = new Author { Login = "reviewer" },
+            CreatedAt = "2023-10-28T09:00:00Z",
+            Body = "Looks good overall."
+        };
+
+        // Act
+        var result = TokenEfficientParser.FormatReviewComment(comment);
+
+        // Assert
+        Assert.Equal("id:comment789|author:reviewer|date:2023-10-28T09:00:00Z|body:Looks good overall.", result);
+    }
+
+    [Fact]
+    public void FormatReviewComments_ShouldReturnMultilineFormat()
+    {
+        // Arrange
+        var comments = new List<PullRequestReviewComment>
+        {
+            new PullRequestReviewComment
+            {
+                Id = "comment1",
+                Author = new Author { Login = "userA" },
+                CreatedAt = "2023-10-28T09:00:00Z",
+                Body = "Comment A."
+            },
+            new PullRequestReviewComment
+            {
+                Id = "comment2",
+                Author = new Author { Login = "userB" },
+                CreatedAt = "2023-10-28T10:00:00Z",
+                Body = "Comment B.\nWith newline."
+            }
+        };
+
+        // Act
+        var result = TokenEfficientParser.FormatReviewComments(comments);
+        var lines = result.Split(Environment.NewLine);
+
+        // Assert
+        Assert.Equal(2, lines.Length);
+        Assert.Equal("id:comment1|author:userA|date:2023-10-28T09:00:00Z|body:Comment A.", lines[0]);
+        Assert.Equal("id:comment2|author:userB|date:2023-10-28T10:00:00Z|body:Comment B.\\nWith newline.", lines[1]);
+    }
+
+    [Fact]
+    public void FormatReviewThread_ShouldReturnCorrectFormat()
+    {
+        // Arrange
+        var thread = new ReviewThread
+        {
+            IsResolved = false,
+            Comments = new ReviewThreadComments
+            {
+                Nodes = new List<PullRequestReviewComment>
+                {
+                    new PullRequestReviewComment
+                    {
+                        Author = new Author { Login = "testuser" },
+                        CreatedAt = "2023-10-27T10:00:00Z",
+                        Body = "Initial comment body.",
+                        DiffHunk = "@@ -1 +1 @@\n-old\n+new"
+                    }
+                }
+            }
+        };
+        var prNumber = 123;
+        var repoPath = "testorg/testrepo";
+
+        // Act
+        var result = TokenEfficientParser.FormatReviewThread(thread, prNumber, repoPath);
+
+        // Assert
+        Assert.Equal("pr:testorg/testrepo#123|resolved:false|comments:1|author:testuser|date:2023-10-27T10:00:00Z|body:Initial comment body.|diffHunk:@@ -1 +1 @@\\n-old\\n+new", result);
+    }
+
+    [Fact]
     public void UnescapeValue_ShouldHandleEscapedNewlines()
     {
         // Arrange
