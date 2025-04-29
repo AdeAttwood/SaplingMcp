@@ -7,14 +7,20 @@ namespace SaplingMcp.Server.Services;
 /// </summary>
 public static class TokenEfficientParser
 {
+    /// <summary>
+    /// The delimiter character used in the token-efficient format.
+    /// </summary>
     private const char Delimiter = '|';
+    /// <summary>
+    /// The escape sequence for newline characters in the token-efficient format.
+    /// </summary>
     private const string NewlineEscape = "\\n";
 
     /// <summary>
     /// Formats a commit into a token-efficient line-based format.
     /// </summary>
     /// <param name="commit">The commit to format.</param>
-    /// <returns>A string representation of the commit in the format: sha:<commit-sha>|title:<commit-title>|pr:<owner/repo#number or none></returns>
+    /// <returns>A string representation of the commit in the format: <c>sha:&lt;commit-sha&gt;|title:&lt;commit-title&gt;|pr:&lt;owner/repo#number or none&gt;</c>.</returns>
     public static string FormatCommit(Commit commit)
     {
         var sb = new StringBuilder();
@@ -46,7 +52,7 @@ public static class TokenEfficientParser
     /// Parses a token-efficient line-based format into a commit.
     /// </summary>
     /// <param name="line">The line to parse.</param>
-    /// <returns>A commit object.</returns>
+    /// <returns>A <c>Commit</c> object.</returns>
     public static Commit ParseCommit(string line)
     {
         var parts = SplitLine(line);
@@ -87,7 +93,7 @@ public static class TokenEfficientParser
     /// <param name="comment">The comment to format.</param>
     /// <param name="prNumber">The pull request number.</param>
     /// <param name="repoPath">The repository path in format owner/repo.</param>
-    /// <returns>A string representation of the comment in the format: pr:<owner/repo#number>|author:<username>|date:<timestamp>|id:<comment-id>|body:<comment-text></returns>
+    /// <returns>A string representation of the comment in the format: <c>pr:&lt;owner/repo#number&gt;|author:&lt;username&gt;|date:&lt;timestamp&gt;|id:&lt;comment-id&gt;|body:&lt;comment-text&gt;</c>.</returns>
     public static string FormatPullRequestComment(PullRequestComment comment, int prNumber, string repoPath)
     {
         var sb = new StringBuilder();
@@ -118,7 +124,7 @@ public static class TokenEfficientParser
     /// Parses a token-efficient line-based format into a pull request comment.
     /// </summary>
     /// <param name="line">The line to parse.</param>
-    /// <returns>A tuple containing the pull request comment, PR number, and repository path.</returns>
+    /// <returns>A tuple containing the pull request comment, PR number, and repository path (<c>PullRequestComment Comment, int PrNumber, string RepoPath</c>).</returns>
     public static (PullRequestComment Comment, int PrNumber, string RepoPath) ParsePullRequestComment(string line)
     {
         var parts = SplitLine(line);
@@ -143,7 +149,7 @@ public static class TokenEfficientParser
     /// Formats a list of commits into a token-efficient multi-line format.
     /// </summary>
     /// <param name="commits">The list of commits to format.</param>
-    /// <returns>A string representation of the commits, one per line.</returns>
+    /// <returns>A string representation of the commits, one per line, using the format from <see cref="FormatCommit(Commit)"/>.</returns>
     public static string FormatCommits(IEnumerable<Commit> commits)
     {
         return string.Join(Environment.NewLine, commits.Select(FormatCommit));
@@ -153,7 +159,7 @@ public static class TokenEfficientParser
     /// Parses a token-efficient multi-line format into a list of commits.
     /// </summary>
     /// <param name="text">The text to parse.</param>
-    /// <returns>A list of commit objects.</returns>
+    /// <returns>A list of <c>Commit</c> objects.</returns>
     public static List<Commit> ParseCommits(string text)
     {
         return text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)
@@ -167,7 +173,7 @@ public static class TokenEfficientParser
     /// <param name="comments">The list of comments to format.</param>
     /// <param name="prNumber">The pull request number.</param>
     /// <param name="repoPath">The repository path in format owner/repo.</param>
-    /// <returns>A string representation of the comments, one per line.</returns>
+    /// <returns>A string representation of the comments, one per line, using the format from <see cref="FormatPullRequestComment(PullRequestComment, int, string)"/>.</returns>
     public static string FormatPullRequestComments(IEnumerable<PullRequestComment> comments, int prNumber, string repoPath)
     {
         return string.Join(Environment.NewLine, comments.Select(c => FormatPullRequestComment(c, prNumber, repoPath)));
@@ -177,12 +183,93 @@ public static class TokenEfficientParser
     /// Parses a token-efficient multi-line format into a list of pull request comments.
     /// </summary>
     /// <param name="text">The text to parse.</param>
-    /// <returns>A list of tuples containing pull request comments, PR numbers, and repository paths.</returns>
+    /// <returns>A list of tuples containing pull request comments, PR numbers, and repository paths (<c>PullRequestComment Comment, int PrNumber, string RepoPath</c>).</returns>
     public static List<(PullRequestComment Comment, int PrNumber, string RepoPath)> ParsePullRequestComments(string text)
     {
         return text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)
             .Select(ParsePullRequestComment)
             .ToList();
+    }
+
+    /// <summary>
+    /// Formats a review thread into a token-efficient line-based format.
+    /// </summary>
+    /// <param name="thread">The review thread to format.</param>
+    /// <param name="prNumber">The pull request number.</param>
+    /// <param name="repoPath">The repository path in format owner/repo.</param>
+    /// <returns>A string representation of the thread in a token-efficient format: <c>pr:&lt;owner/repo#number&gt;|resolved:&lt;true/false&gt;|comments:&lt;count&gt;|author:&lt;username&gt;|date:&lt;timestamp&gt;|body:&lt;comment-text&gt;|diffHunk:&lt;diff-hunk&gt;</c>.</returns>
+    public static string FormatReviewThread(ReviewThread thread, int prNumber, string repoPath)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append("pr:").Append(repoPath).Append('#').Append(prNumber);
+        sb.Append(Delimiter);
+
+        sb.Append("resolved:").Append(thread.IsResolved ? "true" : "false");
+        sb.Append(Delimiter);
+
+        sb.Append("comments:").Append(thread.Comments.Nodes.Count);
+        sb.Append(Delimiter);
+
+        // Format the first comment in the thread (usually the most important one)
+        if (thread.Comments.Nodes.Count > 0)
+        {
+            var firstComment = thread.Comments.Nodes[0];
+            sb.Append("author:").Append(firstComment.Author.Login);
+            sb.Append(Delimiter);
+            sb.Append("date:").Append(firstComment.CreatedAt);
+            sb.Append(Delimiter);
+            sb.Append("body:").Append(EscapeValue(firstComment.Body));
+            sb.Append(Delimiter);
+            sb.Append("diffHunk:").Append(EscapeValue(firstComment.DiffHunk));
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Formats a list of review threads into a token-efficient multi-line format.
+    /// </summary>
+    /// <param name="threads">The list of threads to format.</param>
+    /// <param name="prNumber">The pull request number.</param>
+    /// <param name="repoPath">The repository path in format owner/repo.</param>
+    /// <returns>A string representation of the threads, one per line, using the format from <see cref="FormatReviewThread(ReviewThread, int, string)"/>.</returns>
+    public static string FormatReviewThreads(IEnumerable<ReviewThread> threads, int prNumber, string repoPath)
+    {
+        return string.Join(Environment.NewLine, threads.Select(t => FormatReviewThread(t, prNumber, repoPath)));
+    }
+
+    /// <summary>
+    /// Formats a review comment into a token-efficient line-based format.
+    /// </summary>
+    /// <param name="comment">The review comment to format.</param>
+    /// <returns>A string representation of the comment in a token-efficient format: <c>id:&lt;comment-id&gt;|author:&lt;username&gt;|date:&lt;timestamp&gt;|body:&lt;comment-text&gt;</c>.</returns>
+    public static string FormatReviewComment(PullRequestReviewComment comment)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append("id:").Append(comment.Id);
+        sb.Append(Delimiter);
+
+        sb.Append("author:").Append(comment.Author.Login);
+        sb.Append(Delimiter);
+
+        sb.Append("date:").Append(comment.CreatedAt);
+        sb.Append(Delimiter);
+
+        sb.Append("body:").Append(EscapeValue(comment.Body));
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Formats a list of review comments into a token-efficient multi-line format.
+    /// </summary>
+    /// <param name="comments">The list of comments to format.</param>
+    /// <returns>A string representation of the comments, one per line, using the format from <see cref="FormatReviewComment(PullRequestReviewComment)"/>.</returns>
+    public static string FormatReviewComments(IEnumerable<PullRequestReviewComment> comments)
+    {
+        return string.Join(Environment.NewLine, comments.Select(FormatReviewComment));
     }
 
     /// <summary>

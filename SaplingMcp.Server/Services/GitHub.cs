@@ -7,6 +7,108 @@ using Microsoft.Extensions.Logging;
 namespace SaplingMcp.Server.Services;
 
 /// <summary>
+/// Represents an author of a comment or review.
+/// </summary>
+public class Actor
+{
+    [JsonPropertyName("login")]
+    public required string Login { get; set; }
+}
+
+/// <summary>
+/// Represents a comment within a review thread.
+/// </summary>
+public class PullRequestReviewComment
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; set; }
+
+    [JsonPropertyName("body")]
+    public required string Body { get; set; }
+
+    [JsonPropertyName("diffHunk")]
+    public required string DiffHunk { get; set; }
+
+    [JsonPropertyName("path")]
+    public required string Path { get; set; }
+
+    [JsonPropertyName("position")]
+    public required int Position { get; set; }
+
+    [JsonPropertyName("author")]
+    public required Actor Author { get; set; }
+
+    [JsonPropertyName("createdAt")]
+    public required string CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Represents a connection (list) of review comments.
+/// </summary>
+public class PullRequestReviewCommentConnection
+{
+    [JsonPropertyName("nodes")]
+    public required List<PullRequestReviewComment> Nodes { get; set; }
+}
+
+/// <summary>
+/// Represents a review thread on a pull request.
+/// </summary>
+public class ReviewThread
+{
+    [JsonPropertyName("isResolved")]
+    public required bool IsResolved { get; set; }
+
+    [JsonPropertyName("comments")]
+    public required PullRequestReviewCommentConnection Comments { get; set; }
+}
+
+/// <summary>
+/// Represents a connection (list) of review threads.
+/// </summary>
+public class ReviewThreadConnection
+{
+    [JsonPropertyName("nodes")]
+    public required List<ReviewThread> Nodes { get; set; }
+}
+
+/// <summary>
+/// Represents the pull request data within the GraphQL response.
+/// </summary>
+public class PullRequestData
+{
+    [JsonPropertyName("reviewThreads")]
+    public required ReviewThreadConnection ReviewThreads { get; set; }
+}
+
+/// <summary>
+/// Represents the repository data within the GraphQL response.
+/// </summary>
+public class RepositoryData
+{
+    [JsonPropertyName("repository")]
+    public required RepositoryInfo Repository { get; set; }
+}
+
+/// <summary>
+/// Represents the repository information in the GraphQL response.
+/// </summary>
+public class RepositoryInfo
+{
+    [JsonPropertyName("pullRequest")]
+    public required PullRequestData PullRequest { get; set; }
+}
+
+/// <summary>
+/// Represents the top-level data structure for the GraphQL response.
+/// </summary>
+public class ResponseData
+{
+    [JsonPropertyName("data")]
+    public required RepositoryData Data { get; set; }
+}
+
+/// <summary>
 /// Represents a GitHub pull request.
 /// </summary>
 public class PullRequest
@@ -55,9 +157,10 @@ public class PullRequest
 }
 
 /// <summary>
-/// Represents a comment on a GitHub pull request.
+/// Represents a comment on a GitHub pull request (legacy - use PullRequestReviewComment).
 /// </summary>
 public class PullRequestComment
+
 {
     /// <summary>
     /// Gets or sets the body of the comment.
@@ -161,21 +264,71 @@ public class GitHub
         return pullRequests;
     }
 
+
     /// <summary>
-    /// Gets comments for a specific pull request.
+    /// Gets review threads for a specific pull request using GraphQL.
     /// </summary>
     /// <param name="prNumber">The pull request number.</param>
-    /// <param name="repo">Optional repository in the format owner/repo. If not provided, uses the current repository.</param>
-    /// <returns>A list of comments on the pull request.</returns>
-    public IList<PullRequestComment> GetPullRequestComments(int prNumber, string repoPath)
+    /// <param name="repoPath">Repository in the format owner/repo.</param>
+    /// <returns>A list of review threads on the pull request.</returns>
+    public IList<ReviewThread> GetPullRequestReviewThreads(int prNumber, string repoPath)
     {
-        var args = new List<string> { "api", $"repos/{repoPath}/pulls/{prNumber}/comments" };
+        var ownerAndRepo = repoPath.Split('/');
+        if (ownerAndRepo.Length != 2)
+        {
+            throw new ArgumentException("repoPath must be in the format 'owner/repo'", nameof(repoPath));
+        }
+        var owner = ownerAndRepo[0];
+        var repoName = ownerAndRepo[1];
+
+        // Use verbatim string literal (@) and interpolation ($) for the query
+        var query = $@"
+ query {{
+   repository(owner: ""{owner}"", name: ""{repoName}"") {{
+     pullRequest(number: {prNumber}) {{
+       reviewThreads(first: 100) {{
+         nodes {{
+           isResolved
+           comments(first: 100) {{
+             nodes {{
+               id
+               body
+               author {{
+                 login
+               }}
+               createdAt
+               diffHunk
+               path
+               position
+             }}
+           }}
+         }}
+       }}
+     }}
+   }}
+ }}";
+
+        // Pass the query using the -f field=value syntax
+        var args = new List<string> { "api", "graphql", "-f", $"query={query}" };
 
         var output = RunCommand(args);
-        var comments = JsonSerializer.Deserialize<List<PullRequestComment>>(output)
-            ?? throw new InvalidOperationException("Failed to deserialize pull request comments");
+        var response = JsonSerializer.Deserialize<ResponseData>(output, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidOperationException("Failed to deserialize GraphQL response for review threads");
 
-        return comments;
+        // Handle potential nulls gracefully
+        return response.Data.Repository.PullRequest.ReviewThreads.Nodes;
+    }
+
+    /// <summary>
+    /// Gets unresolved review threads for a specific pull request using GraphQL.
+    /// </summary>
+    /// <param name="prNumber">The pull request number.</param>
+    /// <param name="repoPath">Repository in the format owner/repo.</param>
+    /// <returns>A list of unresolved review threads on the pull request.</returns>
+    public IList<ReviewThread> GetUnresolvedPullRequestReviewThreads(int prNumber, string repoPath)
+    {
+        var allThreads = GetPullRequestReviewThreads(prNumber, repoPath);
+        return allThreads.Where(thread => !thread.IsResolved).ToList();
     }
 
     /// <summary>
